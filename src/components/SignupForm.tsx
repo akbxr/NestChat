@@ -13,7 +13,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/utils/api";
 import AuthLayout from "./AuthLayout";
 
 import { z } from "zod";
@@ -52,14 +51,17 @@ export default function SignupForm() {
     try {
       const { confirmPassword, ...registerData } = data;
 
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(registerData),
         },
-        credentials: "include",
-        body: JSON.stringify(registerData),
-      });
+      );
 
       const result = await response.json();
 
@@ -82,10 +84,10 @@ export default function SignupForm() {
     try {
       if (provider === "google") {
         // Redirect ke Google OAuth
-        window.location.href = `${API_URL}/auth/google`;
+        window.location.href = `${process.env.NEXT_PUBLIC_URL}/auth/google`;
       } else if (provider === "github") {
         // Redirect ke GitHub OAuth
-        window.location.href = `${API_URL}/auth/github`;
+        window.location.href = `${process.env.NEXT_PUBLIC_URL}/auth/github`;
       }
     } catch (error) {
       setGeneralError(`Failed to sign up with ${provider}`);
@@ -273,7 +275,7 @@ export default function SignupForm() {
       <p className="mt-8 text-center text-sm text-gray-400">
         Already have an account?{" "}
         <a
-          href="/login"
+          href="/signin"
           className="font-medium text-emerald-500 hover:text-emerald-400 transition-colors duration-200"
         >
           Sign in

@@ -15,7 +15,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthLayout from "./AuthLayout";
-import { API_URL } from "@/utils/api";
 const loginSchema = z.object({
   email: z
     .string()
@@ -25,14 +24,6 @@ const loginSchema = z.object({
 });
 
 type FormData = z.infer<typeof loginSchema>;
-interface LoginResponse {
-  access_token: string;
-  user: {
-    id: string;
-    email: string;
-  };
-  message: string;
-}
 
 export default function SigninForm() {
   const { login } = useAuth();
@@ -53,23 +44,33 @@ export default function SigninForm() {
     setGeneralError("");
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(formData),
         },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
+      );
 
-      const responseData = (await response.json()) as LoginResponse;
+      const responseData = await response.json();
 
       if (!response.ok) {
         throw new Error(responseData.message || "Login failed");
       }
 
-      login(responseData.access_token);
-      router.push("/profile");
+      await login(
+        {
+          access_token: responseData.access_token,
+          refresh_token: responseData.refresh_token,
+        },
+        responseData.user,
+      );
+
+      router.push("/chat");
     } catch (error) {
       setGeneralError(
         error instanceof Error ? error.message : "Invalid email or password",
@@ -79,11 +80,9 @@ export default function SigninForm() {
 
   const handleSocialLogin = (provider: "google" | "github") => {
     try {
-      // Store current URL for redirect after login
       localStorage.setItem("redirectAfterLogin", window.location.href);
 
-      // Redirect to OAuth provider
-      window.location.href = `${API_URL}/auth/${provider}`;
+      window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}`;
     } catch (error) {
       setGeneralError(`Failed to login with ${provider}`);
     }
@@ -265,7 +264,7 @@ export default function SigninForm() {
       <p className="mt-8 text-center text-sm text-gray-400">
         Don't have an account?{" "}
         <a
-          href="/register"
+          href="/signup"
           className="font-medium text-emerald-500 hover:text-emerald-400 transition-colors duration-200"
         >
           Sign up now
