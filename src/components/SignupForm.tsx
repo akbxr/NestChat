@@ -69,7 +69,7 @@ export default function SignupForm() {
         throw new Error(result.message || "Registration failed");
       }
 
-      router.push("/profile");
+      router.push("/chat");
     } catch (error) {
       setGeneralError(
         error instanceof Error
