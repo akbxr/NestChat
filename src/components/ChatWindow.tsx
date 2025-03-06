@@ -7,8 +7,14 @@ import { Message } from "@/types/chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Send, MoreVertical } from "lucide-react";
+import { ChevronLeft, Send, MoreVertical, Trash, Edit, X } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ChatWindowProps {
   recipientId: string;
@@ -40,6 +46,7 @@ export default function ChatWindow({
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
@@ -123,6 +130,49 @@ export default function ChatWindow({
       setEditContent("");
     } catch (error) {
       console.error("Failed to save edit:", error);
+      setError("Failed to edit message");
+    }
+  };
+
+  // Modified delete handler to properly handle empty response
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!messageId || messageId.startsWith("temp-")) {
+      setError("Cannot delete this message");
+      return;
+    }
+
+    try {
+      setIsDeletingMessage(true);
+
+      const accessToken = localStorage.getItem("access_token");
+      if (!accessToken) {
+        throw new Error("Authentication token not found");
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chat/${messageId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (response.ok) {
+        // Remove the message from the local state
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      } else {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to delete message: ${errorText || response.status}`,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      setError("Failed to delete message");
+    } finally {
+      setIsDeletingMessage(false);
     }
   };
 
@@ -163,7 +213,7 @@ export default function ChatWindow({
         {filteredMessages.map((message) => (
           <div
             key={message.id}
-            className={`mb-4 flex ${
+            className={`mb-4 flex items-start ${
               message.senderId === user?.id ? "justify-end" : "justify-start"
             }`}
           >
@@ -178,23 +228,55 @@ export default function ChatWindow({
               </Avatar>
             )}
 
-            <div className="group relative max-w-[75%]">
+            {/* Message actions menu (now on left side of outgoing messages) */}
+            {message.senderId === user?.id &&
+              !message.id.startsWith("temp-") && (
+                <div className="mr-2 flex items-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="text-gray-500 dark:text-gray-400">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleEdit(message)}>
+                        <Edit className="h-4 w-4 mr-2" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteMessage(message.id)}
+                        className="text-red-500 focus:text-red-500"
+                        disabled={isDeletingMessage}
+                      >
+                        <Trash className="h-4 w-4 mr-2" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+
+            <div className="max-w-[75%]">
               {editingMessageId === message.id ? (
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col space-y-2">
                   <Input
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="flex-1"
+                    className="w-full"
                   />
-                  <Button onClick={() => handleSaveEdit(message.id)}>
-                    Save
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setEditingMessageId(null)}
-                  >
-                    Cancel
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => handleSaveEdit(message.id)}
+                      size="sm"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingMessageId(null)}
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div
@@ -212,14 +294,6 @@ export default function ChatWindow({
                     {new Date(message.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
-              )}
-              {message.senderId === user?.id && !editingMessageId && (
-                <button
-                  onClick={() => handleEdit(message)}
-                  className="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-500" />
-                </button>
               )}
             </div>
           </div>
@@ -245,7 +319,14 @@ export default function ChatWindow({
             <Send className="h-5 w-5" />
           </Button>
         </form>
-        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+        {error && (
+          <div className="text-red-500 text-sm mt-2 flex items-center justify-between">
+            <p>{error}</p>
+            <button onClick={() => setError(null)} className="text-red-500">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );
