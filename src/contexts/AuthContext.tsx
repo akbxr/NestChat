@@ -13,6 +13,8 @@ interface User {
   email: string;
   picture?: string;
   provider?: string;
+  publicKey: string;
+  secretKey: string;
 }
 
 interface AuthContextType {

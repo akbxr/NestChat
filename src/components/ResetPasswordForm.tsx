@@ -32,7 +32,7 @@ export default function ResetPasswordForm() {
     setGeneralError("");
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`,
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`,
         {
           method: "POST",
           headers: {
