@@ -38,7 +38,7 @@ export const useChat = () => {
 
         if (user?.id) {
           const token = localStorage.getItem("access_token");
-          const newSocket = io("http://localhost:8000", {
+          const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}`, {
             query: { userId: user.id, publicKey: keyPair.publicKey },
             auth: { token },
           });
@@ -65,7 +65,7 @@ export const useChat = () => {
 
     socket.on("keyExchange", ({ publicKey }: { publicKey: string }) => {
       setKeys((prevKeys) =>
-        prevKeys ? { ...prevKeys, publicKey } : { publicKey, secretKey: "" }
+        prevKeys ? { ...prevKeys, publicKey } : { publicKey, secretKey: "" },
       );
     });
 
@@ -92,7 +92,7 @@ export const useChat = () => {
           keys.secretKey,
           message.senderPublicKey,
           message.encryptedMessage,
-          message.nonce
+          message.nonce,
         );
 
         setMessages((prev) => [
@@ -132,7 +132,7 @@ export const useChat = () => {
             keys.secretKey,
             editedMessage.recipientPublicKey,
             editedMessage.encryptedMessage,
-            editedMessage.nonce
+            editedMessage.nonce,
           );
         } else {
           // Jika kita penerima, gunakan sender public key
@@ -141,7 +141,7 @@ export const useChat = () => {
             keys.secretKey,
             editedMessage.senderPublicKey,
             editedMessage.encryptedMessage,
-            editedMessage.nonce
+            editedMessage.nonce,
           );
         }
 
@@ -154,8 +154,8 @@ export const useChat = () => {
                   isEdited: true,
                   // editedAt: new Date(editedMessage.editedAt),
                 }
-              : msg
-          )
+              : msg,
+          ),
         );
       } catch (error) {
         console.error("Failed to decrypt edited message:", error);
@@ -203,7 +203,7 @@ export const useChat = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
-        }
+        },
       );
       const data = await response.json();
       setMessages(Array.isArray(data) ? data : []);
@@ -235,7 +235,7 @@ export const useChat = () => {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("access_token")}`,
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -261,7 +261,7 @@ export const useChat = () => {
                 keys.secretKey,
                 isOurMessage ? msg.receiver.publicKey : msg.senderPublicKey,
                 msg.encryptedMessage,
-                msg.nonce
+                msg.nonce,
               );
 
               return {
@@ -277,7 +277,7 @@ export const useChat = () => {
                 message: "[Encrypted Message]",
               };
             }
-          })
+          }),
         );
 
         console.log("Decrypted messages:", decryptedMessages);
@@ -286,7 +286,7 @@ export const useChat = () => {
         console.error("Error in fetchChatHistory:", error);
       }
     },
-    [user]
+    [user],
   );
   const sendMessage = useCallback(
     async (receiverId: string, message: string, recipientPublicKey: string) => {
@@ -304,7 +304,7 @@ export const useChat = () => {
         const result = await ClientEncryption.encryptMessage(
           keys.secretKey,
           recipientPublicKey,
-          message
+          message,
         );
 
         const messageData = {
@@ -332,7 +332,7 @@ export const useChat = () => {
         throw error;
       }
     },
-    [socket, keys, user]
+    [socket, keys, user],
   );
 
   const editMessage = useCallback(
@@ -340,7 +340,7 @@ export const useChat = () => {
       messageId: string,
       newContent: string,
       recipientPublicKey: string,
-      receiverId: string
+      receiverId: string,
     ) => {
       if (!socket || !user?.id) {
         throw new Error("Not connected");
@@ -355,13 +355,13 @@ export const useChat = () => {
         // Tetap gunakan public key penerima untuk enkripsi
         console.log(
           "Using recipient public key for encryption:",
-          recipientPublicKey
+          recipientPublicKey,
         );
 
         const result = await ClientEncryption.encryptMessage(
           keys.secretKey,
           recipientPublicKey, // Public key penerima untuk enkripsi
-          newContent
+          newContent,
         );
 
         socket.emit("editMessage", {
@@ -383,15 +383,15 @@ export const useChat = () => {
                   isEdited: true,
                   // editedAt: new Date(),
                 }
-              : msg
-          )
+              : msg,
+          ),
         );
       } catch (error) {
         console.error("Failed to edit message:", error);
         throw error;
       }
     },
-    [socket, user]
+    [socket, user],
   );
 
   const sendTypingIndicator = useCallback(
@@ -403,7 +403,7 @@ export const useChat = () => {
         receiverId,
       });
     },
-    [socket, user]
+    [socket, user],
   );
 
   const getConversation = useCallback(
@@ -415,7 +415,7 @@ export const useChat = () => {
         otherUserId,
       });
     },
-    [socket, user]
+    [socket, user],
   );
 
   return {
