@@ -38,7 +38,7 @@ export const useChat = () => {
 
         if (user?.id) {
           const token = localStorage.getItem("access_token");
-          const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}`, {
+          const newSocket = io(`${process.env.NEXT_PUBLIC_SOCKET_URL}`, {
             query: { userId: user.id, publicKey: keyPair.publicKey },
             auth: { token },
           });
